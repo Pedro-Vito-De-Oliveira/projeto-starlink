@@ -1,81 +1,125 @@
-'use client' // Avisa o Next.js que essa página usa interações do navegador (useState/useEffect)
+// app/page.js
+// Página Inicial do Painel Starlink Dashboard
 
-import { useState, useEffect } from 'react'
+'use client'
 
-export default function Home() {
-  const [dados, setDados] = useState([])
-  const [categoria, setCategoria] = useState('continentes')
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
-  const carregarDados = async (rota) => {
-    try {
-      const response = await fetch(`http://127.0.0.1:5000/${rota}`)
-      const data = await response.json()
-      setDados(data)
-      setCategoria(rota)
-    } catch (error) {
-      console.error("Erro ao buscar dados do Flask:", error)
+// ── Sub-componente para os cards de navegação ──────────────────────────────
+function CardModulo({ titulo, descricao, link, textoBotao, corIcone }) {
+  return (
+    <div className="rounded-2xl border border-gray-800 bg-gray-900 p-6 flex flex-col justify-between hover:border-gray-700 transition-all shadow-xl">
+      <div className="space-y-3">
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-gray-800 border border-gray-700 ${corIcone}`}>
+          <span className="text-xl">⚡</span>
+        </div>
+        <h2 className="text-xl font-bold text-white">{titulo}</h2>
+        <p className="text-sm text-gray-400 leading-relaxed">{descricao}</p>
+      </div>
+      
+      <div className="mt-6">
+        <Link href={link} className="block w-full text-center rounded-lg bg-gray-800 border border-gray-700 py-2.5 text-sm font-semibold text-cyan-400 hover:bg-gray-700 hover:text-cyan-300 transition-colors">
+          {textoBotao}
+        </Link>
+      </div>
+    </div>
+  )
+}
+
+// ── Componente Principal ───────────────────────────────────────────────────
+export default function HomePage() {
+  const router = useRouter()
+  const [nomeUsuario, setNomeUsuario] = useState('')
+  const [carregando, setCarregando] = useState(true) // Estado de carregamento adicionado
+
+  useEffect(() => {
+    const dadosSalvos = localStorage.getItem('usuario_starlink')
+    
+    if (!dadosSalvos) {
+      // Se realmente não houver dados, manda para o login
+      router.push('/auth')
+    } else {
+      // Se achou os dados, atualiza o estado e libera a tela
+      const usuario = JSON.parse(dadosSalvos)
+      setNomeUsuario(usuario.nome)
+      setCarregando(false) // Desativa o carregamento
     }
+  }, [router])
+
+  // Enquanto estiver checando o localStorage, mostra uma tela neutra de carregamento
+  if (carregando) {
+    return (
+      <main className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
+        <p className="text-sm font-mono text-cyan-400 animate-pulse">Verificando autenticação...</p>
+      </main>
+    )
   }
 
-  // Carrega a categoria inicial assim que a página abre
-  useEffect(() => {
-    carregarDados('continentes')
-  }, [])
-
+  // Só renderiza o painel se o usuário estiver validado
   return (
-    <div className="min-h-screen bg-slate-900 text-white p-8">
-      <header className="text-center mb-12">
-        <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600 mb-6 uppercase tracking-tighter">
-          🚀 Starlink & Next.js Dashboard
-        </h1>
+    <main className="min-h-screen bg-gray-950 text-white flex flex-col">
+      
+      {/* Header / Barra de Navegação Superior */}
+      <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur px-6 py-4 flex items-center justify-between sticky top-0 z-50">
+        <div className="flex items-center space-x-3">
+          <div className="w-3.5 h-3.5 rounded-full bg-cyan-500 animate-pulse" />
+          <span className="text-lg font-bold tracking-wider uppercase text-cyan-400">Starlink Terminal</span>
+        </div>
         
-        {/* BOTÕES DE NAVEGAÇÃO DO TAILWIND */}
-        <div className="flex flex-wrap justify-center gap-3">
-          {['continentes', 'satelites', 'foguetes', 'chips', 'planos'].map((item) => (
-            <button
-              key={item}
-              onClick={() => carregarDados(item)}
-              className={`px-6 py-2 rounded-full font-bold capitalize transition-all shadow-md ${
-                categoria === item 
-                ? 'bg-cyan-500 text-slate-900 shadow-cyan-500/30' 
-                : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
-              }`}
-            >
-              {item}
-            </button>
-          ))}
+        <div className="flex items-center space-x-4">
+          <span className="text-xs font-mono bg-gray-800 border border-gray-700 px-2.5 py-1 rounded-md text-gray-400 hidden sm:inline-block">
+            STATUS: ONLINE
+          </span>
+          <Link href="/perfil" className="text-xs font-semibold text-cyan-400 hover:text-cyan-300 transition-colors border border-cyan-500/20 bg-cyan-950/10 px-4 py-2 rounded-lg">
+            Meu Perfil
+          </Link>
         </div>
       </header>
 
-      {/* GRID RESPONSIVO DE CARDS */}
-      <main className="max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {dados.map((item, index) => (
-            <div 
-              key={index} 
-              className="bg-slate-800 border border-slate-700 p-6 rounded-2xl hover:border-cyan-500 hover:shadow-2xl hover:shadow-cyan-500/5 transition-all duration-300"
-            >
-              <h2 className="text-2xl font-bold text-cyan-400 mb-4 uppercase tracking-wide">
-                {item.nome || item.componente}
-              </h2>
-              
-              <div className="space-y-2">
-                {Object.entries(item).map(([chave, valor]) => {
-                  if (chave === 'nome' || chave === 'componente') return null
-                  return (
-                    <p key={chave} className="flex justify-between text-sm border-b border-slate-700/50 pb-1">
-                      <span className="text-slate-500 font-semibold capitalize">{chave.replace('_', ' ')}:</span>
-                      <span className="text-slate-300 font-medium">
-                        {Array.isArray(valor) ? valor.join(', ') : String(valor)}
-                      </span>
-                    </p>
-                  )
-                })}
-              </div>
-            </div>
-          ))}
+      {/* Conteúdo Central */}
+      <div className="flex-1 max-w-5xl w-full mx-auto px-4 py-12 flex flex-col justify-center space-y-12">
+        
+        {/* Boas-vindas Dinâmica */}
+        <div className="text-center space-y-3">
+          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-200 to-gray-500">
+            Olá, {nomeUsuario}!
+          </h1>
+          <p className="text-gray-400 max-w-xl mx-auto text-sm md:text-base">
+            Seja bem-vindo ao sistema de gerenciamento de banda larga via satélite. Selecione o módulo desejado abaixo para prosseguir.
+          </p>
         </div>
-      </main>
-    </div>
+
+        {/* Grid dos Módulos do Trabalho */}
+        <div className="grid md:grid-cols-2 gap-6 max-w-3xl w-full mx-auto">
+          
+          {/* Card 1: Módulo de Suporte */}
+          <CardModulo 
+            titulo="Central de Soluções e Suporte"
+            descricao="Está enfrentando problemas de rede, falhas técnicas ou oscilação na velocidade da sua banda larga? Acesse nosso diagnóstico automatizado por POO."
+            link="/suporte"
+            textoBotao="Abrir Diagnóstico"
+            corIcone="text-amber-400"
+          />
+
+          {/* Card 2: Módulo de Planos / Compra */}
+          <CardModulo 
+            titulo="Recomendar e Adquirir Planos"
+            descricao="Responda nosso questionário inteligente de viabilidade geográfica e finalidade para que o sistema filtre os melhores planos Starlink para você."
+            link="/planos"
+            textoBotao="Ver Planos Ideais"
+            corIcone="text-cyan-400"
+          />
+
+        </div>
+
+        {/* Rodapé Interno */}
+        <footer className="text-center text-xs font-mono text-gray-600 pt-8">
+          SISTEMA OPERACIONAL STARLINK // PROJETO ACADÊMICO POO
+        </footer>
+
+      </div>
+    </main>
   )
 }

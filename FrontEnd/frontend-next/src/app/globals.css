@@ -1,4 +1,12 @@
 @import "tailwindcss";
+/* app/globals.css
+   Diretivas obrigatórias do Tailwind CSS.
+   Não remova — sem elas as classes do Tailwind não funcionam. */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 
 :root {
   --background: #ffffff;

@@ -107,13 +107,7 @@ export default function AuthPage() {
     <main className="min-h-screen bg-gray-950 text-white flex items-center justify-center px-4">
       <div className="w-full max-w-md space-y-6">
 
-        {/* Botao Voltar */}
-        <div className="flex justify-start">
-          <Link href="/" className="text-xs font-semibold text-gray-400 hover:text-cyan-400 transition-colors flex items-center space-x-1">
-            <span>←</span> <span>Voltar ao Painel</span>
-          </Link>
-        </div>
-
+      
         {/* Titulo */}
         <div className="text-center">
           <h1 className="text-3xl font-bold text-cyan-400">Starlink Dashboard</h1>

@@ -239,8 +239,8 @@ class Plano:
     reduzindo boilerplate e aplicando o princípio DRY.
     """
     nome: str
-    preco: float          # USD/mês
-    continente: str       # "América do Sul", "América do Norte", etc.
+    preco: float          # BRL/mês
+    regiao: str           # "Região Sul", "Região Norte", etc.
     finalidade: str       # "Residencial", "Empresarial", "Marítimo", "Móvel"
     velocidade_mbps: int  # velocidade máxima de download estimada
     descricao: str = field(default="")
@@ -249,7 +249,7 @@ class Plano:
         return {
             "nome": self.nome,
             "preco": self.preco,
-            "continente": self.continente,
+            "regiao": self.regiao,
             "finalidade": self.finalidade,
             "velocidade_mbps": self.velocidade_mbps,
             "descricao": self.descricao,
@@ -275,136 +275,136 @@ class RecomendadorPlanos:
     def _seed_planos(self) -> list[Plano]:
         """Inicializa o catálogo com dados realistas da Starlink."""
         return [
-            # ── América do Sul ──────────────────────────────────────────
+            # ── Região Sul ───────────────────────────────────────────────
             Plano(
                 nome="Starlink Residencial",
-                preco=120.0,
-                continente="Região Sul",
+                preco=620.22,
+                regiao="Região Sul",
                 finalidade="Residencial",
                 velocidade_mbps=200,
                 descricao="Ideal para residências e pequenos escritórios com uso cotidiano.",
             ),
             Plano(
                 nome="Starlink Business",
-                preco=500.0,
-                continente="Região Sul",
+                preco=2584.25,
+                regiao="Região Sul",
                 finalidade="Empresarial",
                 velocidade_mbps=500,
                 descricao="Alta prioridade de rede e SLA para empresas e fazendas.",
             ),
             Plano(
                 nome="Starlink Móvel",
-                preco=150.0,
-                continente="Região Sul",
+                preco=775.27,
+                regiao="Região Sul",
                 finalidade="Móvel",
                 velocidade_mbps=150,
                 descricao="Uso em veículos terrestres com cobertura em movimento.",
             ),
-            # ── América do Norte ─────────────────────────────────────────
+            # ── Região Norte ─────────────────────────────────────────────
             Plano(
                 nome="Starlink Residencial",
-                preco=120.0,
-                continente="Região Norte",
+                preco=620.22,
+                regiao="Região Norte",
                 finalidade="Residencial",
                 velocidade_mbps=250,
                 descricao="Cobertura residencial com alta velocidade.",
             ),
             Plano(
                 nome="Starlink Business",
-                preco=500.0,
-                continente="Região Norte",
+                preco=2584.25,
+                regiao="Região Norte",
                 finalidade="Empresarial",
                 velocidade_mbps=1000,
                 descricao="Plano empresarial premium com suporte prioritário 24/7.",
             ),
             Plano(
                 nome="Starlink Móvel",
-                preco=150.0,
-                continente="Região Norte",
+                preco=775.27,
+                regiao="Região Norte",
                 finalidade="Móvel",
                 velocidade_mbps=150,
                 descricao="Uso em veículos terrestres com cobertura em movimento.",
             ),
             Plano(
                 nome="Starlink Maritime",
-                preco=5000.0,
-                continente="Região Norte",
+                preco=25842.5,
+                regiao="Região Norte",
                 finalidade="Marítimo",
                 velocidade_mbps=350,
                 descricao="Conectividade de alta performance para embarcações offshore.",
             ),
-            # ── Europa ───────────────────────────────────────────────────
+            # ── Região Centro-Oeste ──────────────────────────────────────
             Plano(
                 nome="Starlink Residencial",
-                preco=100.0,
-                continente="Região Centro-Oeste",
+                preco=517.0,
+                regiao="Região Centro-Oeste",
                 finalidade="Residencial",
                 velocidade_mbps=220,
                 descricao="Plano residencial para cobertura na região inteira.",
             ),
             Plano(
                 nome="Starlink Móvel",
-                preco=150.0,
-                continente="Região Centro-Oeste",
+                preco=775.27,
+                regiao="Região Centro-Oeste",
                 finalidade="Móvel",
                 velocidade_mbps=150,
                 descricao="Uso em veículos terrestres com cobertura em movimento.",
             ),
             Plano(
                 nome="Starlink Business",
-                preco=450.0,
-                continente="Região Centro-Oeste",
+                preco=2325.82,
+                regiao="Região Centro-Oeste",
                 finalidade="Empresarial",
                 velocidade_mbps=700,
                 descricao="Conectividade empresarial com foco em uptime e latência baixa.",
             ),
-            # ── África ───────────────────────────────────────────────────
+            # ── Região Sudeste ───────────────────────────────────────────
             Plano(
                 nome="Starlink Residencial",
-                preco=110.0,
-                continente="Região Sudeste",
+                preco=568.54,
+                regiao="Região Sudeste",
                 finalidade="Residencial",
                 velocidade_mbps=180,
                 descricao="Conectividade residencial para regiões remotas.",
             ),
             Plano(
                 nome="Starlink Business",
-                preco=480.0,
-                continente="Região Sudeste",
+                preco=2480.88,
+                regiao="Região Sudeste",
                 finalidade="Empresarial",
                 velocidade_mbps=400,
                 descricao="Solução empresarial para mineração, agronegócio e telecomunicações.",
             ),
-            # ── Ásia ─────────────────────────────────────────────────────
+            # ── Região Nordeste ──────────────────────────────────────────
             Plano(
                 nome="Starlink Residencial",
-                preco=130.0,
-                continente="Região Nordeste",
+                preco=671.9,
+                regiao="Região Nordeste",
                 finalidade="Residencial",
                 velocidade_mbps=200,
                 descricao="Cobertura residencial para regiões rurais e ilhas o nordeste.",
             ),
             Plano(
                 nome="Starlink Móvel",
-                preco=165.0,
-                continente="Região Nordeste",
+                preco=852.8,
+                regiao="Região Nordeste",
                 finalidade="Móvel",
                 velocidade_mbps=150,
                 descricao="Serviço de internet em movimento para todo o nordeste.",
             ),
             Plano(
                 nome="Starlink Maritime",
-                preco=5000.0,
-                continente="Região Nordeste",
+                preco=25842.5,
+                regiao="Região Nordeste",
                 finalidade="Marítimo",
                 velocidade_mbps=300,
                 descricao="Cobertura marítima no Oceano Atlântico.",
             ),
         ]
 
-    def recomendar(self, continente: str, finalidade: str) -> list[dict]:
+    def recomendar(self, regiao: str, finalidade: str) -> list[dict]:
         """
-        Filtra os planos pelo continente e finalidade informados.
+        Filtra os planos pela regiao e finalidade informadas.
 
         Separação de Responsabilidades: a regra de negócio fica AQUI,
         não no endpoint Flask nem no frontend.
@@ -414,14 +414,14 @@ class RecomendadorPlanos:
         resultados = [
             plano.to_dict()
             for plano in self._planos
-            if plano.continente.lower() == continente.lower()
+            if plano.regiao.lower() == regiao.lower()
             and plano.finalidade.lower() == finalidade.lower()
         ]
         return resultados
 
-    def listar_continentes(self) -> list[str]:
-        """Retorna continentes únicos disponíveis no catálogo."""
-        return sorted({p.continente for p in self._planos})
+    def listar_regioes(self) -> list[str]:
+        """Retorna regiões únicas disponíveis no catálogo."""
+        return sorted({p.regiao for p in self._planos})
 
     def listar_finalidades(self) -> list[str]:
         """Retorna finalidades únicas disponíveis no catálogo."""

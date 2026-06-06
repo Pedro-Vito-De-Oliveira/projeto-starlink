@@ -107,7 +107,7 @@ def suporte_solucao_get(tipo: str):
 @app.route("/api/planos/opcoes", methods=["GET"])
 def planos_opcoes():
     return resposta({
-        "continentes": recomendador.listar_continentes(),
+        "regioes": recomendador.listar_regioes(),
         "finalidades": recomendador.listar_finalidades(),
     }, 200)
 
@@ -118,15 +118,15 @@ def planos_recomendar():
     if not dados:
         return resposta({"erro": "Body JSON inválido ou ausente."}, 400)
 
-    continente = dados.get("continente", "").strip()
+    regiao = dados.get("regiao", "").strip()
     finalidade = dados.get("finalidade", "").strip()
 
-    if not continente or not finalidade:
-        return resposta({"erro": "Campos 'continente' e 'finalidade' são obrigatórios."}, 400)
+    if not regiao or not finalidade:
+        return resposta({"erro": "Campos 'regiao' e 'finalidade' são obrigatórios."}, 400)
 
-    planos = recomendador.recomendar(continente, finalidade)
+    planos = recomendador.recomendar(regiao, finalidade)
     return resposta({
-        "continente": continente,
+        "regiao": regiao,
         "finalidade": finalidade,
         "total": len(planos),
         "planos": planos,

@@ -7,8 +7,6 @@ import Link from 'next/link'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000'
 
-// Gera faixas fixas de velocidade até o máximo do plano
-// Faixas: 25%, 50%, 75%, 100% da velocidade máxima
 function gerarFaixas(velocidadeMax, precoBase) {
   const porcentagens = [0.25, 0.50, 0.75, 1.0]
   return porcentagens.map((p) => {
@@ -18,12 +16,16 @@ function gerarFaixas(velocidadeMax, precoBase) {
   })
 }
 
-function CartaoPlano({ plano }) {
+function CartaoPlano({ plano, onEscolher, planoEscolhido }) {
   const faixas = gerarFaixas(plano.velocidade_mbps, plano.preco)
   const [faixaSelecionada, setFaixaSelecionada] = useState(faixas[faixas.length - 1])
 
+  const esteEscolhido =
+    planoEscolhido?.nome === plano.nome &&
+    planoEscolhido?.faixa?.velocidade === faixaSelecionada.velocidade
+
   return (
-    <div className="rounded-xl border border-gray-700 bg-gray-900 p-5 space-y-4 hover:border-cyan-700 transition-colors">
+    <div className={`rounded-xl border bg-gray-900 p-5 space-y-4 transition-colors ${esteEscolhido ? 'border-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.15)]' : 'border-gray-700 hover:border-cyan-700'}`}>
       <div className="flex items-start justify-between gap-2">
         <h3 className="font-bold text-white">{plano.nome}</h3>
         <span className="shrink-0 rounded-md bg-cyan-900/50 px-2 py-0.5 text-xs text-cyan-300 font-semibold border border-cyan-800">
@@ -33,7 +35,6 @@ function CartaoPlano({ plano }) {
 
       <p className="text-sm text-gray-400">{plano.descricao}</p>
 
-      {/* Seletor de faixa de velocidade */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <span className="text-xs text-gray-500 uppercase tracking-wide">Velocidade desejada</span>
@@ -55,7 +56,6 @@ function CartaoPlano({ plano }) {
         </select>
       </div>
 
-      {/* Resumo do plano com faixa selecionada */}
       <div className="flex flex-wrap items-center gap-6 text-sm pt-1 border-t border-gray-800">
         <div className="flex flex-col">
           <span className="text-xs text-gray-500 uppercase tracking-wide">Preço</span>
@@ -76,6 +76,25 @@ function CartaoPlano({ plano }) {
           <span className="text-gray-300">{plano.regiao}</span>
         </div>
       </div>
+
+      {/* Botão escolher plano */}
+      <button
+        onClick={() => onEscolher(plano, faixaSelecionada)}
+        className={`w-full rounded-lg py-2.5 text-sm font-semibold transition-all ${
+          esteEscolhido
+            ? 'bg-cyan-500 text-gray-950 cursor-default'
+            : 'border border-cyan-500/40 text-cyan-400 hover:bg-cyan-950/40 hover:border-cyan-400'
+        }`}
+      >
+        {esteEscolhido ? (
+          <span className="flex items-center justify-center gap-2">
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            Plano Escolhido
+          </span>
+        ) : 'Escolher este plano'}
+      </button>
     </div>
   )
 }
@@ -90,6 +109,8 @@ export default function PlanosPage() {
   const [resultado, setResultado] = useState(null)
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState(null)
+  const [planoEscolhido, setPlanoEscolhido] = useState(null)
+  const [confirmacao, setConfirmacao] = useState(false)
 
   useEffect(() => {
     const dadosSalvos = localStorage.getItem('usuario_starlink')
@@ -98,6 +119,9 @@ export default function PlanosPage() {
     } else {
       setUsuarioLogado(JSON.parse(dadosSalvos))
     }
+    // Carrega plano já escolhido (se houver)
+    const planoSalvo = localStorage.getItem('plano_starlink')
+    if (planoSalvo) setPlanoEscolhido(JSON.parse(planoSalvo))
   }, [router])
 
   useEffect(() => {
@@ -139,6 +163,14 @@ export default function PlanosPage() {
     }
   }
 
+  function handleEscolherPlano(plano, faixa) {
+    const escolha = { nome: plano.nome, regiao: plano.regiao, finalidade: plano.finalidade, faixa }
+    setPlanoEscolhido(escolha)
+    localStorage.setItem('plano_starlink', JSON.stringify(escolha))
+    setConfirmacao(true)
+    setTimeout(() => setConfirmacao(false), 3000)
+  }
+
   if (!usuarioLogado) {
     return (
       <main className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
@@ -161,6 +193,43 @@ export default function PlanosPage() {
           <h1 className="text-3xl font-bold tracking-tight text-cyan-400">Recomendador de Planos</h1>
           <p className="mt-2 text-gray-400">Responda duas perguntas e descubra o plano Starlink ideal.</p>
         </header>
+
+        {/* Banner plano atual */}
+        {planoEscolhido && (
+          <div className="rounded-xl border border-cyan-500/30 bg-cyan-950/20 p-4 flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center shrink-0">
+                <svg className="w-4 h-4 text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-xs text-cyan-500/70 uppercase tracking-widest font-semibold">Plano ativo</p>
+                <p className="text-sm font-bold text-white">{planoEscolhido.nome} — {planoEscolhido.faixa.velocidade} Mbps</p>
+                <p className="text-xs text-gray-400">R$ {planoEscolhido.faixa.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/mês · {planoEscolhido.regiao}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => { localStorage.removeItem('plano_starlink'); setPlanoEscolhido(null) }}
+              className="text-xs text-red-400/70 hover:text-red-400 transition-colors"
+            >
+              Remover
+            </button>
+          </div>
+        )}
+
+        {/* Toast de confirmação */}
+        {confirmacao && (
+          <div className="fixed bottom-6 right-6 z-50 rounded-xl border border-cyan-500/40 bg-gray-900 shadow-2xl px-5 py-3 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4">
+            <svg className="w-5 h-5 text-cyan-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <div>
+              <p className="text-sm font-semibold text-white">Plano escolhido!</p>
+              <p className="text-xs text-gray-400">Aparece agora no painel e no perfil.</p>
+            </div>
+          </div>
+        )}
 
         <section className="rounded-xl border border-gray-700 bg-gray-900 p-6 space-y-6">
           <div className="space-y-2">
@@ -210,7 +279,7 @@ export default function PlanosPage() {
               )}
             </div>
             {resultado.planos.map((plano, i) => (
-              <CartaoPlano key={i} plano={plano} />
+              <CartaoPlano key={i} plano={plano} onEscolher={handleEscolherPlano} planoEscolhido={planoEscolhido} />
             ))}
           </section>
         )}

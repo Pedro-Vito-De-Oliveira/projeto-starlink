@@ -1,0 +1,199 @@
+# 🛰️ Starlink Dashboard
+
+Sistema web de gerenciamento de planos e suporte técnico da Starlink, desenvolvido como projeto acadêmico para a disciplina de **Programação Orientada a Objetos (POO)**.
+
+A aplicação possui arquitetura desacoplada: um **backend em Python (Flask)** exposto como API REST e um **frontend em Next.js** com Tailwind CSS.
+
+---
+
+## 📋 Sumário
+
+- [Funcionalidades](#funcionalidades)
+- [Estrutura do Projeto](#estrutura-do-projeto)
+- [Tecnologias Utilizadas](#tecnologias-utilizadas)
+- [Pré-requisitos](#pré-requisitos)
+- [Como Rodar o Projeto](#como-rodar-o-projeto)
+- [Páginas do Sistema](#páginas-do-sistema)
+- [Conceitos de POO Aplicados](#conceitos-de-poo-aplicados)
+- [Endpoints da API](#endpoints-da-api)
+
+---
+
+## ✨ Funcionalidades
+
+- **Cadastro e Login** de usuários com senha protegida por hash
+- **Painel principal** com saudação personalizada por hora do dia e plano ativo
+- **Central de Suporte** com diagnóstico automático por categoria (Rede, Técnico, Velocidade)
+- **Chamados em tempo real**: abertos ao iniciar diagnóstico, atualizados ao finalizar — com polling de 5 segundos e sincronização entre abas via `localStorage`
+- **Gerenciamento de chamados**: excluir um por um (com confirmação quando o chamado está em aberto) ou limpar todos de uma vez
+- **Recomendador de Planos**: filtra planos por região e finalidade, exibindo preço, velocidade em Mbps e descrição
+- **Plano ativo**: exibido no painel com nome, região, preço (R$) e velocidade (Mbps)
+- **Status da API** em tempo real no cabeçalho (ONLINE / OFFLINE / VERIFICANDO)
+
+---
+
+## 📁 Estrutura do Projeto
+
+```
+projeto-starlink/
+├── backend/
+│   ├── app.py          # Rotas HTTP (Flask) — ponte entre POO e HTTP
+│   └── models.py       # Classes POO puras (Usuario, Problema, Plano, etc.)
+│
+└── FrontEnd/
+    └── frontend-next/
+        └── src/app/
+            ├── page.js         # Painel principal
+            ├── auth/page.js    # Cadastro e Login
+            ├── perfil/page.js  # Perfil do usuário
+            ├── suporte/page.js # Central de Suporte
+            └── planos/page.js  # Recomendador de Planos
+```
+
+---
+
+## 🛠️ Tecnologias Utilizadas
+
+### Backend
+| Tecnologia | Versão | Função |
+|---|---|---|
+| Python | 3.10+ | Linguagem principal |
+| Flask | 3.x | Framework web / API REST |
+| Flask-CORS | 4.x | Liberar acesso do frontend |
+| Werkzeug | 3.x | Hash de senhas |
+
+### Frontend
+| Tecnologia | Versão | Função |
+|---|---|---|
+| Node.js | 18+ | Ambiente de execução |
+| Next.js | 16.x | Framework React |
+| React | 19.x | Interface de usuário |
+| Tailwind CSS | 4.x | Estilização |
+
+---
+
+## ✅ Pré-requisitos
+
+Antes de começar, certifique-se de ter instalado:
+
+- [Python 3.10+](https://www.python.org/downloads/)
+- [Node.js 18+](https://nodejs.org/)
+- [Git](https://git-scm.com/) (opcional)
+
+---
+
+## 🚀 Como Rodar o Projeto
+
+### 1. Clone ou baixe o projeto
+
+```bash
+git clone https://github.com/seu-usuario/projeto-starlink.git
+cd projeto-starlink
+```
+
+### 2. Inicie o Backend (Flask)
+
+```bash
+# Entre na pasta do backend
+cd backend
+
+# Crie um ambiente virtual (recomendado)
+python -m venv venv
+
+# Ative o ambiente virtual
+# Windows:
+venv\Scripts\activate
+# macOS / Linux:
+source venv/bin/activate
+
+# Instale as dependências
+pip install -r requirements.txt
+
+# Inicie o servidor
+python app.py
+```
+
+O backend estará disponível em: `http://localhost:5000`
+
+### 3. Inicie o Frontend (Next.js)
+
+Abra um **novo terminal**:
+
+```bash
+# Entre na pasta do frontend
+cd FrontEnd/frontend-next
+
+# Instale as dependências
+npm install
+
+# Inicie em modo de desenvolvimento
+npm run dev
+```
+
+O frontend estará disponível em: `http://localhost:3000`
+
+### 4. Acesse o sistema
+
+Abra o navegador e acesse **http://localhost:3000**. Crie uma conta na tela de autenticação e explore o sistema.
+
+> **Atenção:** o backend precisa estar rodando antes de acessar o frontend. Se o backend estiver offline, o sistema exibirá a tela "API Desconectada".
+
+---
+
+## 📄 Páginas do Sistema
+
+### `/auth` — Cadastro e Login
+Formulário para criar conta (nome, username, e-mail e senha) ou entrar com credenciais existentes. Após o login, redireciona automaticamente para o painel.
+
+### `/` — Painel Principal
+- Saudação personalizada por período do dia (bom dia / boa tarde / boa noite)
+- Card do plano ativo com nome, região, velocidade em Mbps e preço mensal
+- Acesso rápido à Central de Suporte e ao Recomendador de Planos
+- Histórico de chamados recentes com atualização automática em tempo real
+- Botão para excluir chamados individualmente ou limpar tudo (com confirmação para chamados ainda em aberto)
+
+### `/suporte` — Central de Suporte
+Selecione a categoria do problema (Rede, Técnico ou Velocidade) e receba um passo a passo guiado de diagnóstico. Ao iniciar, um chamado é registrado como **ABERTO**. Ao finalizar o diagnóstico, o chamado é atualizado para **RESOLVIDO** ou **ESCALADO** — e o painel reflete a mudança automaticamente.
+
+### `/planos` — Recomendador de Planos
+Questionário de duas etapas: escolha a região e a finalidade de uso. O sistema retorna os planos disponíveis com nome, preço (R$/mês), velocidade (Mbps) e descrição. O plano escolhido fica salvo e exibido no painel principal.
+
+### `/perfil` — Perfil do Usuário
+Exibe os dados do usuário logado (nome, username, e-mail).
+
+---
+
+## 🎓 Conceitos de POO Aplicados
+
+| Conceito | Onde foi aplicado |
+|---|---|
+| **Classes e Objetos** | `Usuario`, `Plano`, `Problema`, `CentralSuporte`, `RecomendadorPlanos` |
+| **Encapsulamento** | Atributos `_privados`, `@property` para acesso controlado, senha protegida com `generate_password_hash` |
+| **Abstração** | `class Problema(ABC)` com `@abstractmethod` — define o contrato que toda subclasse deve cumprir |
+| **Herança** | `ProblemaRede`, `ProblemaTecnico` e `ProblemaVelocidade` herdam de `Problema` via `super().__init__()` |
+| **Polimorfismo** | `get_solucao()` com comportamento diferente em cada subclasse — mesmo método, resultado diferente |
+| **Separação de Responsabilidades** | `models.py` só tem lógica de negócio; `app.py` só tem rotas HTTP |
+| **Método Estático** | `@staticmethod` em `Usuario.autenticar()` — chamado sem instância |
+| **Método de Classe** | `@classmethod` em `CentralSuporte.obter_solucao()` — recebe a própria classe como argumento |
+| **Dataclass** | `@dataclass` na classe `Plano` — gera `__init__`, `__repr__` e `__eq__` automaticamente |
+
+---
+
+## 🔌 Endpoints da API
+
+Base URL: `http://localhost:5000`
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET` | `/api/health` | Verifica se a API está online |
+| `POST` | `/api/cadastro` | Cadastra novo usuário |
+| `POST` | `/api/login` | Autentica usuário e retorna perfil |
+| `GET` | `/api/perfil/:username` | Retorna dados públicos do usuário |
+| `GET` | `/api/suporte/tipos` | Lista categorias de suporte disponíveis |
+| `POST` | `/api/suporte/solucao` | Retorna diagnóstico para o tipo informado |
+| `GET` | `/api/planos/opcoes` | Lista regiões e finalidades disponíveis |
+| `POST` | `/api/planos/recomendar` | Retorna planos filtrados por região e finalidade |
+
+---
+
+*Projeto Acadêmico — Programação Orientada a Objetos*

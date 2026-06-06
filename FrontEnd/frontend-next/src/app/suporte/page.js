@@ -1,11 +1,37 @@
 // app/suporte/page.js  ── Página de Suporte Melhorada
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000'
+
+// ── Gerenciamento de chamados no localStorage ─────────────────────────────────
+const STORAGE_KEY_CHAMADOS = 'starlink_chamados'
+
+function lerChamados() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY_CHAMADOS) ?? '[]') } catch { return [] }
+}
+
+function salvarChamado(tipo) {
+  const chamados = lerChamados()
+  const novo = {
+    id: Date.now().toString(),
+    tipo,
+    status: 'aberto',
+    data: new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
+  }
+  localStorage.setItem(STORAGE_KEY_CHAMADOS, JSON.stringify([novo, ...chamados].slice(0, 10)))
+  window.dispatchEvent(new Event('starlink_chamados_update'))
+  return novo.id
+}
+
+function finalizarChamadoStorage(id, novoStatus) {
+  const chamados = lerChamados().map(c => c.id === id ? { ...c, status: novoStatus } : c)
+  localStorage.setItem(STORAGE_KEY_CHAMADOS, JSON.stringify(chamados))
+  window.dispatchEvent(new Event('starlink_chamados_update'))
+}
 
 // ── Metadados visuais por tipo de problema ────────────────────────────────────
 // (espelha o _MAPA da CentralSuporte no backend)
@@ -47,7 +73,7 @@ const COR = {
 
 // ── Stepper interativo de passos ──────────────────────────────────────────────
 // Componente separado: separação de responsabilidades no frontend
-function StepperSolucao({ solucao, tipo }) {
+function StepperSolucao({ solucao, tipo, chamadoId, onReiniciar }) {
   const meta = META[tipo] ?? { cor: 'cyan' }
   const cor = COR[meta.cor]
 
@@ -70,9 +96,15 @@ function StepperSolucao({ solucao, tipo }) {
     setPassosConcluidos(new Set(solucao.passos.map((_, i) => i)))
   }
 
+  function registrarFeedback(status) {
+    if (chamadoId) finalizarChamadoStorage(chamadoId, status)
+    setFeedback(status)
+  }
+
   function reiniciar() {
     setPassosConcluidos(new Set())
     setFeedback(null)
+    if (onReiniciar) onReiniciar()
   }
 
   // Tela de resultado após feedback
@@ -203,13 +235,13 @@ function StepperSolucao({ solucao, tipo }) {
         <p className="text-sm font-semibold text-white">Isso resolveu o seu problema?</p>
         <div className="flex gap-3">
           <button
-            onClick={() => setFeedback('resolvido')}
+            onClick={() => registrarFeedback('resolvido')}
             className="flex-1 rounded-lg border border-green-500/30 bg-green-950/20 py-2.5 text-sm font-semibold text-green-400 hover:bg-green-900/30 transition-all"
           >
             ✅ Sim, resolveu!
           </button>
           <button
-            onClick={() => setFeedback('nao_resolvido')}
+            onClick={() => registrarFeedback('nao_resolvido')}
             className="flex-1 rounded-lg border border-rose-500/30 bg-rose-950/20 py-2.5 text-sm font-semibold text-rose-400 hover:bg-rose-900/30 transition-all"
           >
             ❌ Não resolveu
@@ -255,6 +287,7 @@ export default function SuportePage() {
   const [carregando, setCarregando] = useState(false)
   const [carregandoTipos, setCarregandoTipos] = useState(true)
   const [erro, setErro] = useState(null)
+  const [chamadoId, setChamadoId] = useState(null)
 
   // Proteção de rota
   useEffect(() => {
@@ -287,6 +320,9 @@ export default function SuportePage() {
     setSolucao(null)
     setErro(null)
     setCarregando(true)
+    // Cria chamado no localStorage ao abrir diagnóstico
+    const novoId = salvarChamado(tipo)
+    setChamadoId(novoId)
     try {
       const res = await fetch(`${API_URL}/api/suporte/solucao`, {
         method: 'POST',
@@ -398,7 +434,12 @@ export default function SuportePage() {
 
         {/* Solução em stepper interativo */}
         {solucao && !carregando && (
-          <StepperSolucao solucao={solucao} tipo={tipoSelecionado} />
+          <StepperSolucao
+            solucao={solucao}
+            tipo={tipoSelecionado}
+            chamadoId={chamadoId}
+            onReiniciar={() => { setTipoSelecionado(null); setSolucao(null); setChamadoId(null) }}
+          />
         )}
 
         {/* Nenhum tipo selecionado ainda */}

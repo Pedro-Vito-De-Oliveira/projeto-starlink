@@ -14,6 +14,40 @@ function getSaudacao(nome) {
   return `${periodo}, ${nome}!`
 }
 
+// ── Helpers de chamados no localStorage ──────────────────────────────────────
+const STORAGE_KEY_CHAMADOS = 'starlink_chamados'
+
+export function salvarChamado(tipo) {
+  const chamados = lerChamados()
+  const novo = {
+    id: Date.now().toString(),
+    tipo,
+    status: 'aberto',
+    data: new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
+  }
+  // mantém até 10 chamados recentes
+  const atualizados = [novo, ...chamados].slice(0, 10)
+  localStorage.setItem(STORAGE_KEY_CHAMADOS, JSON.stringify(atualizados))
+  window.dispatchEvent(new Event('starlink_chamados_update'))
+  return novo.id
+}
+
+export function finalizarChamado(id, novoStatus = 'resolvido') {
+  const chamados = lerChamados().map(c =>
+    c.id === id ? { ...c, status: novoStatus } : c
+  )
+  localStorage.setItem(STORAGE_KEY_CHAMADOS, JSON.stringify(chamados))
+  window.dispatchEvent(new Event('starlink_chamados_update'))
+}
+
+function lerChamados() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY_CHAMADOS) ?? '[]')
+  } catch {
+    return []
+  }
+}
+
 // ── Skeleton de carregamento ──────────────────────────────────────────────────
 function SkeletonCard() {
   return (
@@ -61,7 +95,29 @@ function CardModulo({ titulo, descricao, link, textoBotao, icone, corBorda, corI
 
 // ── Card de resumo do plano ───────────────────────────────────────────────────
 function CardPlanoAtivo({ plano }) {
-  if (!plano) return null
+  if (!plano) {
+    return (
+      <div className="rounded-2xl border border-gray-800 bg-gray-900/50 p-5 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-gray-800/60 border border-gray-700 flex items-center justify-center text-lg shrink-0">
+            🛰️
+          </div>
+          <div>
+            <p className="text-[10px] font-mono uppercase tracking-widest text-gray-600">Plano ativo</p>
+            <p className="text-sm font-semibold text-gray-500">Nenhum plano selecionado</p>
+            <p className="text-xs text-gray-700">Escolha um plano para começar</p>
+          </div>
+        </div>
+        <Link
+          href="/planos"
+          className="text-xs font-semibold text-cyan-400 hover:text-cyan-200 transition-colors whitespace-nowrap border border-cyan-500/20 px-3 py-1.5 rounded-lg hover:bg-cyan-950/50"
+        >
+          Ver planos →
+        </Link>
+      </div>
+    )
+  }
+
   return (
     <div className="rounded-2xl border border-cyan-500/20 bg-gradient-to-br from-cyan-950/40 to-gray-900 p-5 flex items-center justify-between gap-4">
       <div className="flex items-center gap-4">
@@ -71,7 +127,11 @@ function CardPlanoAtivo({ plano }) {
         <div>
           <p className="text-[10px] font-mono uppercase tracking-widest text-cyan-500/70">Plano ativo</p>
           <p className="text-sm font-bold text-cyan-300">{plano.nome}</p>
-          <p className="text-xs text-gray-500">{plano.regiao} · {plano.velocidade_mbps} Mbps · R$ {plano.preco?.toFixed(2)}/mês</p>
+          <p className="text-xs text-gray-400">
+            {plano.regiao}
+            {plano.velocidade_mbps ? ` · ${plano.velocidade_mbps} Mbps` : ''}
+            {plano.preco != null ? ` · R$ ${Number(plano.preco).toFixed(2)}/mês` : ''}
+          </p>
         </div>
       </div>
       <Link
@@ -84,39 +144,185 @@ function CardPlanoAtivo({ plano }) {
   )
 }
 
-// ── Histórico de chamados recentes ────────────────────────────────────────────
-function HistoricoSuporte({ historico }) {
-  if (!historico || historico.length === 0) return null
+// ── Modal de confirmação ──────────────────────────────────────────────────────
+function ModalConfirmacao({ mensagem, onConfirmar, onCancelar }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCancelar} />
+      <div className="relative rounded-2xl border border-amber-500/30 bg-gray-900 p-6 max-w-sm w-full shadow-2xl space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-900/40 border border-amber-500/30 flex items-center justify-center text-xl shrink-0">
+            ⚠️
+          </div>
+          <div>
+            <p className="text-sm font-bold text-white">Tem certeza?</p>
+            <p className="text-xs text-gray-400 mt-0.5">{mensagem}</p>
+          </div>
+        </div>
+        <div className="flex gap-3 pt-1">
+          <button
+            onClick={onCancelar}
+            className="flex-1 rounded-lg border border-gray-700 bg-gray-800 py-2 text-xs font-semibold text-gray-300 hover:bg-gray-700 hover:text-white transition-all"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={onConfirmar}
+            className="flex-1 rounded-lg border border-red-500/40 bg-red-950/30 py-2 text-xs font-semibold text-red-400 hover:bg-red-900/40 hover:text-red-300 transition-all"
+          >
+            Sim, excluir
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Histórico de chamados recentes — atualiza em tempo real ──────────────────
+function HistoricoSuporte() {
+  const [historico, setHistorico] = useState([])
+  const [ultimaAtualizacao, setUltimaAtualizacao] = useState(null)
+  const [piscando, setPiscando] = useState(false)
+  // confirmacao: null | { tipo: 'um', id: string } | { tipo: 'todos' }
+  const [confirmacao, setConfirmacao] = useState(null)
 
   const ICONES = { rede: '📡', tecnico: '🔧', velocidade: '⚡' }
   const STATUS_ESTILO = {
-    resolvido: 'text-green-400 bg-green-950/40 border-green-500/30',
-    aberto: 'text-amber-400 bg-amber-950/40 border-amber-500/30',
+    resolvido:    'text-green-400 bg-green-950/40 border-green-500/30',
+    aberto:       'text-amber-400 bg-amber-950/40 border-amber-500/30',
+    nao_resolvido:'text-rose-400 bg-rose-950/40 border-rose-500/30',
+  }
+  const STATUS_LABEL = {
+    resolvido:     'RESOLVIDO',
+    aberto:        'ABERTO',
+    nao_resolvido: 'ESCALADO',
   }
 
+  const carregar = useCallback(() => {
+    const dados = lerChamados()
+    setHistorico(dados)
+    setUltimaAtualizacao(new Date())
+    setPiscando(true)
+    setTimeout(() => setPiscando(false), 600)
+  }, [])
+
+  useEffect(() => {
+    carregar()
+    window.addEventListener('starlink_chamados_update', carregar)
+    const intervalo = setInterval(carregar, 5000)
+    const onStorage = (e) => { if (e.key === STORAGE_KEY_CHAMADOS) carregar() }
+    window.addEventListener('storage', onStorage)
+    return () => {
+      window.removeEventListener('starlink_chamados_update', carregar)
+      window.removeEventListener('storage', onStorage)
+      clearInterval(intervalo)
+    }
+  }, [carregar])
+
+  function excluirUm(id) {
+    const atualizados = lerChamados().filter(c => c.id !== id)
+    localStorage.setItem(STORAGE_KEY_CHAMADOS, JSON.stringify(atualizados))
+    window.dispatchEvent(new Event('starlink_chamados_update'))
+    setConfirmacao(null)
+  }
+
+  function limparTodos() {
+    localStorage.setItem(STORAGE_KEY_CHAMADOS, JSON.stringify([]))
+    window.dispatchEvent(new Event('starlink_chamados_update'))
+    setConfirmacao(null)
+  }
+
+  const temAbertos = historico.some(c => c.status === 'aberto')
+
   return (
-    <section className="space-y-3">
-      <h3 className="text-xs font-mono uppercase tracking-widest text-gray-500">Chamados recentes</h3>
-      <div className="space-y-2">
-        {historico.map((ticket) => (
-          <div
-            key={ticket.id}
-            className="flex items-center justify-between rounded-xl border border-gray-800 bg-gray-900/60 px-4 py-3"
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-lg">{ICONES[ticket.tipo] ?? '❓'}</span>
-              <div>
-                <p className="text-sm font-semibold text-white capitalize">{ticket.tipo}</p>
-                <p className="text-xs text-gray-500">{ticket.data}</p>
-              </div>
-            </div>
-            <span className={`text-[10px] font-mono font-bold tracking-widest px-2 py-1 rounded-full border ${STATUS_ESTILO[ticket.status] ?? 'text-gray-400 bg-gray-800 border-gray-700'}`}>
-              {ticket.status.toUpperCase()}
-            </span>
+    <>
+      {/* Modal de confirmação */}
+      {confirmacao?.tipo === 'um' && (
+        <ModalConfirmacao
+          mensagem="Este chamado ainda está em aberto. Deseja mesmo excluí-lo?"
+          onConfirmar={() => excluirUm(confirmacao.id)}
+          onCancelar={() => setConfirmacao(null)}
+        />
+      )}
+      {confirmacao?.tipo === 'todos' && (
+        <ModalConfirmacao
+          mensagem="Todos os chamados serão removidos permanentemente."
+          onConfirmar={limparTodos}
+          onCancelar={() => setConfirmacao(null)}
+        />
+      )}
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-mono uppercase tracking-widest text-gray-500">
+            Chamados recentes
+          </h3>
+          <div className="flex items-center gap-3">
+            {ultimaAtualizacao && (
+              <span className="text-[10px] font-mono text-gray-700">
+                Atualizado {ultimaAtualizacao.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </span>
+            )}
+            <span className={`w-1.5 h-1.5 rounded-full transition-colors duration-300 ${piscando ? 'bg-cyan-400' : 'bg-gray-700'}`} />
+            {historico.length > 0 && (
+              <button
+                onClick={() => setConfirmacao({ tipo: 'todos' })}
+                className="text-[10px] font-mono font-semibold text-red-500/60 hover:text-red-400 transition-colors border border-red-500/20 hover:border-red-500/40 px-2 py-1 rounded-md"
+              >
+                Limpar tudo
+              </button>
+            )}
           </div>
-        ))}
-      </div>
-    </section>
+        </div>
+
+        {historico.length === 0 ? (
+          <div className="rounded-xl border border-gray-800 bg-gray-900/40 px-4 py-6 text-center">
+            <p className="text-xs text-gray-600 font-mono">Nenhum chamado registrado ainda.</p>
+            <Link href="/suporte" className="text-xs text-cyan-600 hover:text-cyan-400 mt-1 block transition-colors">
+              Abrir um chamado →
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {historico.map((ticket) => (
+              <div
+                key={ticket.id}
+                className="flex items-center justify-between rounded-xl border border-gray-800 bg-gray-900/60 px-4 py-3 transition-all duration-300 group"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-lg">{ICONES[ticket.tipo] ?? '❓'}</span>
+                  <div>
+                    <p className="text-sm font-semibold text-white capitalize">{ticket.tipo}</p>
+                    <p className="text-xs text-gray-500">{ticket.data}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] font-mono font-bold tracking-widest px-2 py-1 rounded-full border ${STATUS_ESTILO[ticket.status] ?? 'text-gray-400 bg-gray-800 border-gray-700'}`}>
+                    {STATUS_LABEL[ticket.status] ?? ticket.status.toUpperCase()}
+                  </span>
+                  <button
+                    onClick={() =>
+                      ticket.status === 'aberto'
+                        ? setConfirmacao({ tipo: 'um', id: ticket.id })
+                        : excluirUm(ticket.id)
+                    }
+                    title="Excluir chamado"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-600 hover:text-red-400 p-1 rounded-md hover:bg-red-950/30"
+                  >
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                      <path d="M10 11v6M14 11v6" />
+                      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </>
   )
 }
 
@@ -215,13 +421,6 @@ export default function HomePage() {
   const [planoEscolhido, setPlanoEscolhido] = useState(null)
   const [carregandoModulos, setCarregandoModulos] = useState(true)
 
-  // Histórico simulado de chamados — em produção virá de GET /api/suporte/historico/:username
-  // Classe POO envolvida no backend: TicketSuporte (encapsulamento + status)
-  const [historico] = useState([
-    { id: '1', tipo: 'rede', status: 'resolvido', data: 'Hoje, 09:14' },
-    { id: '2', tipo: 'velocidade', status: 'aberto', data: 'Ontem, 18:32' },
-  ])
-
   const checarApi = useCallback(async () => {
     try {
       const res = await fetch(`${API_URL}/api/health`, { signal: AbortSignal.timeout(4000) })
@@ -242,14 +441,24 @@ export default function HomePage() {
     const planoSalvo = localStorage.getItem('plano_starlink')
     if (planoSalvo) setPlanoEscolhido(JSON.parse(planoSalvo))
 
+    // Detecta se o plano mudou em outra aba / página de planos
+    function onStorage(e) {
+      if (e.key === 'plano_starlink') {
+        setPlanoEscolhido(e.newValue ? JSON.parse(e.newValue) : null)
+      }
+    }
+    window.addEventListener('storage', onStorage)
+
     setMontado(true)
     checarApi()
 
-    // Simula delay de carregamento dos módulos para mostrar skeleton
     setTimeout(() => setCarregandoModulos(false), 800)
 
     const intervalo = setInterval(checarApi, 30000)
-    return () => clearInterval(intervalo)
+    return () => {
+      clearInterval(intervalo)
+      window.removeEventListener('storage', onStorage)
+    }
   }, [router, checarApi])
 
   if (!montado || !usuario) {
@@ -294,7 +503,7 @@ export default function HomePage() {
           </p>
         </div>
 
-        {/* Card do plano ativo (só aparece se houver plano salvo) */}
+        {/* Card do plano ativo — sempre exibido, com ou sem plano */}
         <CardPlanoAtivo plano={planoEscolhido} />
 
         {/* Módulos principais — com skeleton durante o carregamento */}
@@ -333,8 +542,8 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* Histórico de chamados recentes */}
-        <HistoricoSuporte historico={historico} />
+        {/* Histórico de chamados — atualização em tempo real via localStorage */}
+        <HistoricoSuporte />
 
         {/* Rodapé */}
         <footer className="text-center text-xs font-mono text-gray-700 pt-4 border-t border-gray-900">

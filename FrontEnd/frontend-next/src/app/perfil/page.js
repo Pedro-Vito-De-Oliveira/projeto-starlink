@@ -38,10 +38,10 @@ export default function PerfilPage() {
     <main className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-md space-y-6">
 
-        <div className="flex justify-start">
-          <Link href="/" className="text-xs font-semibold text-gray-400 hover:text-cyan-400 transition-colors flex items-center space-x-1">
-            <span>←</span> <span>Voltar ao Painel</span>
-          </Link>
+        <div className="flex items-center gap-3 text-xs font-mono text-gray-600">
+          <Link href="/" className="hover:text-cyan-400 transition-colors">Painel</Link>
+          <span>/</span>
+          <span className="text-gray-400">Perfil</span>
         </div>
 
         <div className="rounded-2xl border border-gray-800 bg-gray-900 p-6 space-y-6 shadow-2xl relative overflow-hidden">

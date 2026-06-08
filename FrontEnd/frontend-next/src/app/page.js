@@ -519,14 +519,14 @@ export default function HomePage() {
             <div className="grid md:grid-cols-2 gap-6">
               <CardModulo
                 titulo="Central de Suporte"
-                descricao="Diagnóstico automatizado por POO. Selecione a categoria do problema e receba o passo a passo de solução."
+                descricao="Diagnóstico automatizado. Selecione a categoria do problema e receba o passo a passo de solução."
                 link="/suporte"
                 textoBotao="Abrir Diagnóstico"
                 icone="📡"
                 corBorda="border-amber-500/30 hover:border-amber-400/60"
                 corIconeBg="bg-amber-900/30 border border-amber-500/20"
                 corTexto="border-amber-500/30 bg-amber-950/20 text-amber-400 hover:bg-amber-900/40 hover:text-amber-300"
-                badge="POO"
+                
               />
               <CardModulo
                 titulo="Planos & Recomendação"

@@ -374,6 +374,14 @@ class RecomendadorPlanos:
                 finalidade="Empresarial",
                 velocidade_mbps=400,
                 descricao="Solução empresarial para mineração, agronegócio e telecomunicações.",
+            ), 
+            Plano(
+                nome="Starlink Móvel",
+                preco=852.8,
+                regiao="Região Sudeste",
+                finalidade="Móvel",
+                velocidade_mbps=150,
+                descricao="Serviço de internet em movimento para todo o nordeste.",
             ),
             # ── Região Nordeste ──────────────────────────────────────────
             Plano(

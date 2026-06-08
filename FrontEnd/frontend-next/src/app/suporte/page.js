@@ -362,9 +362,7 @@ export default function SuportePage() {
         <header className="space-y-1">
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-bold tracking-tight text-white">Central de Suporte</h1>
-            <span className="text-[10px] font-mono font-bold tracking-widest px-2 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-cyan-400">
-              POO
-            </span>
+            
           </div>
           <p className="text-gray-500 text-sm">
             Selecione a categoria do problema para receber o diagnóstico automatizado.

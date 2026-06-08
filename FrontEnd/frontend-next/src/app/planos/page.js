@@ -183,10 +183,10 @@ export default function PlanosPage() {
     <main className="min-h-screen bg-gray-950 text-white px-4 py-12">
       <div className="max-w-3xl mx-auto space-y-10">
 
-        <div className="flex justify-start">
-          <Link href="/" className="text-xs font-semibold text-gray-400 hover:text-cyan-400 transition-colors flex items-center space-x-1">
-            <span>←</span> <span>Voltar ao Painel</span>
-          </Link>
+        <div className="flex items-center gap-3 text-xs font-mono text-gray-600">
+          <Link href="/" className="hover:text-cyan-400 transition-colors">Painel</Link>
+          <span>/</span>
+          <span className="text-gray-400">Planos</span>
         </div>
 
         <header>
